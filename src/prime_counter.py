@@ -29,29 +29,24 @@ def is_prime(n: int) -> bool:
 
 
 def count_primes(start: int, end: int) -> int:
-    return sum([is_prime(i) for i in range(start, end)])
+    return sum(is_prime(i) for i in range(start, end))
 
 
 def threaded_count_primes(n: int, num_threads: int) -> int:
     threads = []  # List to store thread objects
     results = [0] * num_threads  # Shared list to store results from each thread
 
-    # Worker function to count primes in a given range
-    def count_primes_in_range(start: int, end: int, index: int) -> None:
-        results[index] = count_primes(start, end)
+    # Worker function
+    def count_primes_in_range(thread_id: int) -> None:
+        count = 0
+        for i in range(thread_id, n, num_threads):  # Round-robin allocation
+            if is_prime(i):
+                count += 1
+        results[thread_id] = count
 
-    # Helper function to calculate ranges for each thread
-    def calculate_ranges(n: int, num_threads: int):
-        step = n // num_threads
-        for i in range(num_threads):
-            start = i * step
-            # Ensure the last thread includes any leftover range
-            end = (i + 1) * step if i != num_threads - 1 else n
-            yield start, end, i
-
-    # Create and start threads for each range
-    for start, end, index in calculate_ranges(n, num_threads):
-        thread = threading.Thread(target=count_primes_in_range, args=(start, end, index))
+    # Create and start threads
+    for i in range(num_threads):
+        thread = threading.Thread(target=count_primes_in_range, args=(i,))
         threads.append(thread)
         thread.start()
 
